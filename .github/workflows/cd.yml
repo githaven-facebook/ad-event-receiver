@@ -1,0 +1,112 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          tag_name: ${{ steps.version.outputs.version }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [release]
+    environment:
+      name: staging
+      url: https://ad-event-receiver.staging.internal.fb.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push versioned image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.release.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to staging cluster
+        env:
+          KUBE_CONFIG: ${{ secrets.STAGING_KUBE_CONFIG }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          echo "$KUBE_CONFIG" | base64 -d > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          kubectl set image deployment/ad-event-receiver \
+            ad-event-receiver=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION} \
+            -n ad-platform
+          kubectl rollout status deployment/ad-event-receiver -n ad-platform --timeout=5m
+
+      - name: Run smoke tests against staging
+        run: |
+          sleep 10
+          curl -sf https://ad-event-receiver.staging.internal.fb.com/healthz || exit 1
+          curl -sf https://ad-event-receiver.staging.internal.fb.com/readyz || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    environment:
+      name: production
+      url: https://ad-event-receiver.prod.internal.fb.com
+    steps:
+      - name: Deploy to production cluster
+        env:
+          KUBE_CONFIG: ${{ secrets.PROD_KUBE_CONFIG }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          echo "$KUBE_CONFIG" | base64 -d > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          kubectl set image deployment/ad-event-receiver \
+            ad-event-receiver=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION} \
+            -n ad-platform
+          kubectl rollout status deployment/ad-event-receiver -n ad-platform --timeout=10m
+
+      - name: Verify production health
+        run: |
+          sleep 15
+          curl -sf https://ad-event-receiver.prod.internal.fb.com/healthz || exit 1
+          curl -sf https://ad-event-receiver.prod.internal.fb.com/readyz || exit 1
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "Deployment of ${{ needs.release.outputs.version }} to production succeeded."
