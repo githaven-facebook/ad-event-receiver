@@ -13,6 +13,8 @@ linters-settings:
   govet:
     check-shadowing: true
     enable-all: true
+    disable:
+      - fieldalignment
   errcheck:
     check-type-assertions: true
     check-blank: true

@@ -52,8 +52,8 @@ func DebugMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// DebugEndpoint exposes internal state - should not be in production
-func DebugEndpoint(w http.ResponseWriter, r *http.Request) {
+// DebugEndpoint exposes internal state - should not be in production.
+func DebugEndpoint(w http.ResponseWriter, _ *http.Request) {
 	info := map[string]interface{}{
 		"env":      os.Environ(), // Exposes ALL environment variables
 		"hostname": getHostname(),

@@ -44,7 +44,7 @@ func NewProducer(brokers []string, batchSize int, writeTimeout time.Duration, re
 		writeTimeout = 10 * time.Second
 	}
 
-	acks := kafka.RequireOne
+	var acks kafka.RequiredAcks
 	switch requiredAcks {
 	case 0:
 		acks = kafka.RequireNone
@@ -65,15 +65,14 @@ func NewProducer(brokers []string, batchSize int, writeTimeout time.Duration, re
 }
 
 func newKafkaProducer(cfg producerConfig) *kafkaProducer {
+	// Async=false ensures we get delivery confirmation before returning.
+	// Compression reduces network overhead.
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(cfg.brokers...),
 		Balancer:     &kafka.LeastBytes{},
 		BatchSize:    cfg.batchSize,
 		WriteTimeout: cfg.writeTimeout,
 		RequiredAcks: cfg.requiredAcks,
-		// Async = false ensures we get delivery confirmation before returning
-		Async:        false,
-		// Compress messages to reduce network overhead
 		Compression:  kafka.Snappy,
 	}
 

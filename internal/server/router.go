@@ -13,9 +13,9 @@ import (
 
 // RouterConfig holds dependencies needed to build the router.
 type RouterConfig struct {
-	EventHandler  *handler.EventHandler
-	HealthHandler *handler.HealthHandler
-	Logger        *zap.Logger
+	EventHandler   *handler.EventHandler
+	HealthHandler  *handler.HealthHandler
+	Logger         *zap.Logger
 	AllowedOrigins []string
 }
 
@@ -49,14 +49,14 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	})
 
 	// 404 handler
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte(`{"status":"error","code":"NOT_FOUND","message":"the requested resource does not exist"}`))
 	})
 
 	// 405 handler
-	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		_, _ = w.Write([]byte(`{"status":"error","code":"METHOD_NOT_ALLOWED","message":"method not allowed for this endpoint"}`))
