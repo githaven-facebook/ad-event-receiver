@@ -23,9 +23,16 @@ func DebugMiddleware(next http.Handler) http.Handler {
 		if r.Body != nil {
 			var body map[string]interface{}
 			decoder := json.NewDecoder(r.Body)
-			decoder.Decode(&body)
-			bodyJSON, _ := json.Marshal(body)
-			log.Printf("DEBUG BODY: %s", string(bodyJSON))
+			if err := decoder.Decode(&body); err != nil {
+				log.Printf("DEBUG BODY: failed to decode body: %v", err)
+			} else {
+				bodyJSON, err := json.Marshal(body)
+				if err != nil {
+					log.Printf("DEBUG BODY: failed to marshal body: %v", err)
+				} else {
+					log.Printf("DEBUG BODY: %s", string(bodyJSON))
+				}
+			}
 
 			// BUG: body is consumed and not restored
 			// Downstream handlers will get empty body
@@ -55,11 +62,17 @@ func DebugEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(info)
+	if err := json.NewEncoder(w).Encode(info); err != nil {
+		log.Printf("DEBUG: failed to encode response: %v", err)
+	}
 }
 
 func getHostname() string {
-	hostname, _ := os.Hostname()
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Printf("DEBUG: failed to get hostname: %v", err)
+		return ""
+	}
 	return hostname
 }
 
