@@ -37,10 +37,12 @@ func NewHealthHandler(checkers ...ReadinessChecker) *HealthHandler {
 func (h *HealthHandler) Liveness(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(HealthStatus{
+	if err := json.NewEncoder(w).Encode(HealthStatus{
 		Status:    "ok",
 		Timestamp: time.Now().UTC(),
-	})
+	}); err != nil {
+		http.Error(w, "encode error", http.StatusInternalServerError)
+	}
 }
 
 // Readiness handles GET /readyz.
@@ -73,5 +75,7 @@ func (h *HealthHandler) Readiness(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
-	_ = json.NewEncoder(w).Encode(status)
+	if err := json.NewEncoder(w).Encode(status); err != nil {
+		http.Error(w, "encode error", http.StatusInternalServerError)
+	}
 }

@@ -16,9 +16,9 @@ const (
 type Action string
 
 const (
-	ActionImpression Action = "impression"
-	ActionClick      Action = "click"
-	ActionConversion Action = "conversion"
+	ActionImpression  Action = "impression"
+	ActionClick       Action = "click"
+	ActionConversion  Action = "conversion"
 	ActionViewThrough Action = "view_through"
 )
 

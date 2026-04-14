@@ -64,12 +64,12 @@ func postEvent(t *testing.T, handler http.HandlerFunc, event interface{}) *httpt
 
 func TestHandleEvent_TableDriven(t *testing.T) {
 	tests := []struct {
-		name           string
-		event          interface{}
-		publishErr     error
-		wantStatus     int
-		wantTopic      string
-		wantAccepted   bool
+		name         string
+		event        interface{}
+		publishErr   error
+		wantStatus   int
+		wantTopic    string
+		wantAccepted bool
 	}{
 		{
 			name:         "valid SSP event",

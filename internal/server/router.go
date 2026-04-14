@@ -52,14 +52,18 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"status":"error","code":"NOT_FOUND","message":"the requested resource does not exist"}`))
+		if _, err := w.Write([]byte(`{"status":"error","code":"NOT_FOUND","message":"the requested resource does not exist"}`)); err != nil {
+			http.Error(w, "write error", http.StatusInternalServerError)
+		}
 	})
 
 	// 405 handler
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		_, _ = w.Write([]byte(`{"status":"error","code":"METHOD_NOT_ALLOWED","message":"method not allowed for this endpoint"}`))
+		if _, err := w.Write([]byte(`{"status":"error","code":"METHOD_NOT_ALLOWED","message":"method not allowed for this endpoint"}`)); err != nil {
+			http.Error(w, "write error", http.StatusInternalServerError)
+		}
 	})
 
 	return r

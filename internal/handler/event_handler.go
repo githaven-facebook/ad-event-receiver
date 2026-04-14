@@ -17,10 +17,10 @@ const (
 
 // EventHandler handles ad event ingestion requests.
 type EventHandler struct {
-	producer  kafka.Producer
-	sspTopic  string
-	dspTopic  string
-	logger    *zap.Logger
+	producer kafka.Producer
+	sspTopic string
+	dspTopic string
+	logger   *zap.Logger
 }
 
 // NewEventHandler creates a new EventHandler with the given dependencies.
