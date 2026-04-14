@@ -215,9 +215,9 @@ func validateEvent(event *model.AdEvent) []model.FieldError {
 		errs = append(errs, model.FieldError{Field: "payload.campaign_id", Message: "required"})
 	}
 	validActions := map[model.Action]bool{
-		model.ActionImpression: true,
-		model.ActionClick:      true,
-		model.ActionConversion: true,
+		model.ActionImpression:  true,
+		model.ActionClick:       true,
+		model.ActionConversion:  true,
 		model.ActionViewThrough: true,
 	}
 	if !validActions[event.Payload.Action] {
